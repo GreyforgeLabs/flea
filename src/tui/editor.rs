@@ -173,6 +173,8 @@ impl Editor {
                 out.push_str(&format!("{accent}▏{base}"));
                 used += 1;
             }
+            // Keep byte offsets and the editable value intact, but never print filename controls.
+            if !render::safe(c) { continue; }
             let cells = render::text_width(&c.to_string());
             if used + cells > available {
                 break;
@@ -208,6 +210,36 @@ impl Editor {
 mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
+    #[test]
+    fn editor_output_filters_terminal_controls_without_changing_the_value() {
+        let value = "a\u{1b}[2Jb\u{7}c\r\nd\t\u{9b}31m\u{202e}txt\u{2066}é";
+        let editor = Editor::new("path", value.into(), "/".into());
+        let line = editor.line("", "", 100, "", "", "");
+        assert!(line.chars().all(render::safe), "untrusted controls reached terminal output");
+        assert!(line.starts_with(&render::clean(value)));
+        assert_eq!(editor.value, value, "rendering must preserve the filesystem spelling");
+    }
+
+    #[test]
+    fn rename_filters_controls_with_selection_and_after_cursor_movement() {
+        let sandbox = TestDir::new("tui-editor-controls");
+        let name = "a\u{1b}[2J\u{202e}é.txt";
+        let path = sandbox.file(name, "original");
+        let mut editor = Editor::rename(name.into(), path.clone(), false).unwrap();
+        // Selection contributes only trusted SGR; stripping those leaves entirely safe text.
+        let line = editor.line("", "", 100, "BASE", "", "").replace("\x1b[7m", "");
+        assert!(line.chars().all(render::safe));
+        assert_eq!(editor.value, name);
+        assert!(editor.valid());
+        for _ in 0..name.chars().count() {
+            editor.update(&Key { name: "Left".into(), text: "".into(), mods: "".into(), pointer: None });
+            let line = editor.line("", "", 8, "", "", "");
+            assert!(line.chars().all(render::safe));
+            assert_eq!(editor.value, name);
+        }
+        assert_eq!(std::fs::read_to_string(path).unwrap(), "original");
+    }
+
     #[test]
     fn path_prompt_and_caret_use_accent_without_coloring_typed_text() {
         let editor = Editor::new("path", "am".into(), "/".into());
