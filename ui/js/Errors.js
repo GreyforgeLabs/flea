@@ -105,12 +105,16 @@ function lockedLine(mode) {
 // owner. Below that the owner is locked out too, and the line claims nothing it cannot know.
 var OWNER_CAN_LIST = 0o500
 
+// A readable, searchable owner mode proves an observed listing denial belongs to another user.
 function notYours(mode) {
     return (mode & OWNER_CAN_LIST) === OWNER_CAN_LIST ? " · not yours" : ""
 }
 
-// timeout and the shell reserve these statuses. The helper suppresses GIO output, so every
-// other failure is unclassified: neither the URI scheme nor status 1 proves TLS or authentication.
+/**
+ * Return a user-facing sentence for a failed authentication helper's numeric exit status.
+ * Timeout and the shell reserve 124 and 126/127. GIO output is suppressed, so other statuses
+ * remain unclassified; they establish neither a TLS failure nor an authentication refusal.
+ */
 function connectFailure(exitCode) {
     if (exitCode === 124) return "Connect failed: host did not respond"
     if (exitCode === 126 || exitCode === 127)

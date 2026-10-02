@@ -1,5 +1,6 @@
 .import "../../ui/js/Errors.js" as Errors
 
+/** Exercise user-facing error mappings with the Qt test runner's equality assertion callback. */
 function run(check) {
     // StatusBar board rule 4, both refusal lanes: a refused hop names the directory that refused,
     // and a refusal of the directory already on screen names nothing, because the breadcrumb does.
