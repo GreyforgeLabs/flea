@@ -147,6 +147,8 @@ impl Editor {
         self.editable_end = self.editable_end + self.value.len() - old_length;
         self.error.clear();
     }
+    /// Render a clipped editor line, filtering unsafe value characters without changing byte offsets.
+    /// The style arguments are trusted terminal sequences; the stored filesystem spelling is retained.
     pub fn line(
         &self,
         prefix: &str,
@@ -210,6 +212,7 @@ impl Editor {
 mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
+    /// Existing path text may contain controls even though typed input is already filtered.
     #[test]
     fn editor_output_filters_terminal_controls_without_changing_the_value() {
         let value = "a\u{1b}[2Jb\u{7}c\r\nd\t\u{9b}31m\u{202e}txt\u{2066}é";
@@ -220,6 +223,7 @@ mod tests {
         assert_eq!(editor.value, value, "rendering must preserve the filesystem spelling");
     }
 
+    /// Filtering must also hold during rename selection and scrolling without touching the file.
     #[test]
     fn rename_filters_controls_with_selection_and_after_cursor_movement() {
         let sandbox = TestDir::new("tui-editor-controls");
