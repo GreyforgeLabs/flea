@@ -20,8 +20,8 @@ pub struct UserFormat {
 }
 
 impl UserFormat {
-    // {out} and {dir} are replaced wherever they appear in an argument; {names} and {paths} are whole
-    // arguments that become one argument per selected item. Nothing passes through a shell.
+    /// {out} and {dir} are replaced wherever they appear in an argument; {names} and {paths} are whole
+    /// arguments that become one argument per selected item. Nothing passes through a shell.
     pub fn argv(&self, dest: &Path, parent: &Path, names: &[String]) -> Vec<String> {
         let out = dest.to_string_lossy();
         let dir = parent.to_string_lossy();
@@ -38,8 +38,8 @@ impl UserFormat {
     }
 }
 
-// The archive jail (sandbox::wrap_archive) plus one read-only bind: the format's own executable, which may
-// live outside /usr, such as ~/.local/bin. Nothing else of the home becomes visible.
+/// The archive jail (sandbox::wrap_archive) plus one read-only bind: the format's own executable, which may
+/// live outside /usr, such as ~/.local/bin. Nothing else of the home becomes visible.
 pub fn wrap(inner: &[String], input: &Path, out: &Path, program: &Path) -> Vec<String> {
     let mut a = crate::backend::sandbox::wrap_archive(&[], input, out);
     let program = program.to_string_lossy().to_string();
@@ -48,13 +48,13 @@ pub fn wrap(inner: &[String], input: &Path, out: &Path, program: &Path) -> Vec<S
     a
 }
 
-// The file under the config home, or None when there is no config home at all.
+/// The file under the config home, or None when there is no config home at all.
 pub fn path() -> Option<PathBuf> {
     crate::userfile::config_home().ok().map(|d| d.join("flea").join(FILE))
 }
 
-// No file is the ordinary case and says nothing; every refused line is said once on stderr, because a
-// format that silently never appears in the submenu is a defect the operator cannot see.
+/// No file is the ordinary case and says nothing; every refused line is said once on stderr, because a
+/// format that silently never appears in the submenu is a defect the operator cannot see.
 pub fn load(reserved: &[&str]) -> Vec<UserFormat> {
     let Some(file) = path() else { return Vec::new() };
     let Ok(text) = std::fs::read_to_string(&file) else { return Vec::new() };
@@ -65,8 +65,8 @@ pub fn load(reserved: &[&str]) -> Vec<UserFormat> {
     formats
 }
 
-// Split from load() so the rules are testable without a config home or real programs; `resolve`
-// answers the canonical path of a usable executable. Built-in ids win over a user line of the same id.
+/// Split from load() so the rules are testable without a config home or real programs; `resolve`
+/// answers the canonical path of a usable executable. Built-in ids win over a user line of the same id.
 pub fn parse(text: &str, reserved: &[&str], resolve: impl Fn(&Path) -> Option<PathBuf>) -> (Vec<UserFormat>, Vec<String>) {
     let mut formats: Vec<UserFormat> = Vec::new();
     let mut refused = Vec::new();
@@ -106,13 +106,13 @@ pub fn parse(text: &str, reserved: &[&str], resolve: impl Fn(&Path) -> Option<Pa
     (formats, refused)
 }
 
-// Sample input: "zjx", "tar.lz4". The id is a file extension, so no slash, space or leading dot.
+/// Sample input: "zjx", "tar.lz4". The id is a file extension, so no slash, space or leading dot.
 fn valid_id(id: &str) -> bool {
     id.len() <= MAX_ID
         && id.split('.').all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit()))
 }
 
-// The canonical path of a regular file with an execute bit, so a symlink in ~/.local/bin binds its target.
+/// The canonical path of a regular file with an execute bit, so a symlink in ~/.local/bin binds its target.
 fn executable(program: &Path) -> Option<PathBuf> {
     use std::os::unix::fs::PermissionsExt;
     let real = std::fs::canonicalize(program).ok()?;
@@ -124,10 +124,12 @@ fn executable(program: &Path) -> Option<PathBuf> {
 mod tests {
     use super::*;
 
+    /// Resolve a fixture program without requiring a real executable.
     fn found(p: &Path) -> Option<PathBuf> {
         Some(p.to_path_buf())
     }
 
+    /// Check template expansion preserves each selected name as one literal argument.
     #[test]
     fn a_line_becomes_a_format_whose_argv_fills_every_placeholder() {
         let text = "# id program args\n\nzjx /opt/zjx/bin/zjx pack --output {out} --base {dir} -- {names}\n";
@@ -140,6 +142,7 @@ mod tests {
                           "--", "a b.txt", "-dash"]);
     }
 
+    /// Check absolute selection paths and destination substitution within an argument.
     #[test]
     fn paths_are_absolute_and_out_is_replaced_inside_an_argument() {
         let (formats, _) = parse("lz /usr/bin/lzt -o{out} {paths}", &[], found);
@@ -147,7 +150,7 @@ mod tests {
         assert_eq!(argv, ["/usr/bin/lzt", "-o/w/x.lz", "/w/a", "/w/b"]);
     }
 
-    // Every refusal names its line, and a refused line never stops the lines after it.
+    /// Every refusal names its line, and a refused line never stops the lines after it.
     #[test]
     fn a_bad_line_is_refused_with_its_reason_and_the_rest_still_load() {
         let text = "Bad /usr/bin/t {out} {names}\n\
@@ -173,6 +176,7 @@ mod tests {
         assert!(refused[1].contains("already a format"), "a built-in id is never replaced");
     }
 
+    /// Check excess format entries are refused after the submenu limit.
     #[test]
     fn the_submenu_is_capped() {
         let text: String = (0..MAX_FORMATS + 2).map(|i| format!("f{} /usr/bin/t {{out}} {{names}}\n", i)).collect();
@@ -181,6 +185,7 @@ mod tests {
         assert_eq!(refused.len(), 2);
     }
 
+    /// Check extension IDs accept only bounded, dot-separated lowercase letters and digits.
     #[test]
     fn ids_are_extensions() {
         for ok in ["zjx", "tar.lz4", "a1", "x.y.z"] {
@@ -191,6 +196,7 @@ mod tests {
         }
     }
 
+    /// Check executable-file validation resolves symlinks and rejects directories.
     #[test]
     fn only_an_executable_regular_file_is_a_program() {
         use std::os::unix::fs::PermissionsExt;

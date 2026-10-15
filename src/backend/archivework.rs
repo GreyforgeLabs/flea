@@ -189,25 +189,25 @@ pub(crate) fn cancel_failure(what: &str, jailed: &mut crate::backend::jail::Jail
     op_err(what, "", &format!("cancelled; the {what} tool did not exit, so its work folder {name} was left in place"))
 }
 
-// The cancellable runner, watched for a cancel: kill and reap here, so nothing is renamed and stderr is drained.
+/// The cancellable runner, watched for a cancel: kill and reap here, so nothing is renamed and stderr is drained.
 pub fn run_boxed_cancellable(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                              cancel: &AtomicBool) -> Result<(), FleaError> {
     run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Jail::Archive)
 }
 
-// A user compress format's own program rides into the archive jail read-only; see AGENTS.md "User compress formats".
+/// A user compress format's own program rides into the archive jail read-only; see AGENTS.md "User compress formats".
 pub fn run_boxed_cancellable_with(what: &str, inner: Vec<String>, read_only: &Path, program: &Path, work: &mut Work,
                                   cancel: &AtomicBool) -> Result<(), FleaError> {
     run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Jail::ArchiveWith(program))
 }
 
-// Convert keeps its CPU cap on the cancellable runner; archive jobs run uncapped.
+/// Convert keeps its CPU cap on the cancellable runner; archive jobs run uncapped.
 pub fn run_boxed_cancellable_capped(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                     cancel: &AtomicBool) -> Result<(), FleaError> {
     run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Jail::Capped(sandbox::CPU_SECONDS))
 }
 
-// Test seam: the convert runner with a lower cap, so the pin burns seconds, not 30 s.
+/// Test seam: the convert runner with a lower cap, so the pin burns seconds, not 30 s.
 #[cfg(test)]
 fn run_boxed_cancellable_capped_with_cpu(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                          cancel: &AtomicBool, cpu_seconds: u32) -> Result<(), FleaError> {
@@ -220,7 +220,7 @@ enum Jail<'a> {
     Archive,
     ArchiveWith(&'a Path),
 }
-
+/// Run the selected jail, drain stderr, and reap the child on cancellation or failure.
 fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                cancel: &AtomicBool, started: Option<&AtomicU32>, jail: Jail) -> Result<(), FleaError> {
     #[cfg(test)]
@@ -269,14 +269,14 @@ fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path,
         }
     }
 }
-
+/// Run an uncapped archive job and record its child PID for cancellation tests.
 #[cfg(test)]
 fn run_boxed_cancellable_observed(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                   cancel: &AtomicBool, started: &AtomicU32) -> Result<(), FleaError> {
     run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), Jail::Archive)
 }
 
-// The convert runner with its own CPU cap and a spawn witness, so a timeout test cancels a live child.
+/// The convert runner with its own CPU cap and a spawn witness, so a timeout test cancels a live child.
 #[cfg(test)]
 pub(crate) fn run_boxed_cancellable_capped_observed(what: &str, inner: Vec<String>, read_only: &Path,
                                                    work: &mut Work, cancel: &AtomicBool,

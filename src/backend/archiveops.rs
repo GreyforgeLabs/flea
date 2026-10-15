@@ -25,7 +25,7 @@ pub struct Password<'a> {
     pub encrypt_names: bool,
 }
 
-// One archive out of a selection that all shares a parent, which is what a listing selection is.
+/// One archive out of a selection that all shares a parent, which is what a listing selection is.
 pub fn compress(formats: &Formats, parent: &Path, names: &[String], format: &str,
                 dest: &Path, cancel: &AtomicBool, password: Option<Password>) -> Result<(), FleaError> {
     if dest.symlink_metadata().is_ok() {

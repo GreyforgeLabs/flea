@@ -69,13 +69,14 @@ fn on_path(prog: &str) -> bool {
 }
 
 impl Formats {
+    /// Detect installed archive tools and load configured compression formats once.
     pub fn probe() -> Formats {
         Formats::from_tools(on_path(BSDTAR), on_path(SEVENZIP)).with_user(archiveuser::load(RESERVED))
     }
 
-    // Nothing writes rar here: WinRAR's own tool is the only thing on Linux that does, it is not free
-    // software and it is in no Arch repository, so the compress submenu cannot offer it. Reading one
-    // is separate and needs neither that tool nor a flag, see extract_argv below.
+    /// Nothing writes rar here: WinRAR's own tool is the only thing on Linux that does, it is not free
+    /// software and it is in no Arch repository, so the compress submenu cannot offer it. Reading one
+    /// is separate and needs neither that tool nor a flag, see extract_argv below.
     pub fn from_tools(have_bsdtar: bool, have_7z: bool) -> Formats {
         let mut names = Vec::new();
         if have_bsdtar {
@@ -94,7 +95,7 @@ impl Formats {
         }
     }
 
-    // The user's formats join the table after the built-in ones, so they reach the submenu like any other.
+    /// The user's formats join the table after the built-in ones, so they reach the submenu like any other.
     pub fn with_user(mut self, mut user: Vec<UserFormat>) -> Formats {
         user.retain(|u| !RESERVED.contains(&u.id.as_str()));
         self.names.extend(user.iter().map(|u| u.id.clone()));
@@ -102,24 +103,24 @@ impl Formats {
         self
     }
 
-    // The program a user format runs, which the jail has to bind; None for every built-in format.
+    /// The program a user format runs, which the jail has to bind; None for every built-in format.
     pub fn user_program(&self, format: &str) -> Option<&Path> {
         self.user.iter().find(|u| u.id == format).map(|u| u.program.as_path())
     }
 
-    // A Formats whose compressor is the RLIMIT_CPU probe, so the uncapped-jail pin drives compress() itself.
+    /// A Formats whose compressor is the RLIMIT_CPU probe, so the uncapped-jail pin drives compress() itself.
     #[cfg(test)]
     pub fn test_probe() -> Formats {
         Formats { names: vec!["zip".to_string()], have_bsdtar: true, have_7z: false, user: Vec::new(), probe: true, block: false, stub: None }
     }
 
-    // A Formats whose compressor blocks until killed, so a mid-run cancel always has a live child.
+    /// A Formats whose compressor blocks until killed, so a mid-run cancel always has a live child.
     #[cfg(test)]
     pub fn test_block() -> Formats {
         Formats { names: vec!["zip".to_string()], have_bsdtar: true, have_7z: false, user: Vec::new(), probe: false, block: true, stub: None }
     }
 
-    // A 7z-only Formats whose probe listing and extract are the given argvs, so a cancel can land on a live probe.
+    /// A 7z-only Formats whose probe listing and extract are the given argvs, so a cancel can land on a live probe.
     #[cfg(test)]
     pub fn test_stub(technical: Vec<String>, extract: Vec<String>) -> Formats {
         let stub = Stub { technical, extract, indexed: std::sync::atomic::AtomicUsize::new(0) };
@@ -146,10 +147,10 @@ impl Formats {
         self.have_7z
     }
 
-    // bsdtar's -a picks the compression from the destination's own extension, so one argv covers
-    // every tar flavour, and zip on a box without 7z; 7z is its own tool and its own shape.
-    // corner: bsdtar reads -C positionally, so it has to precede the names it applies to. Putting it
-    // after them archives nothing, prints "Cannot stat" per name, and still leaves an empty archive.
+    /// bsdtar's -a picks the compression from the destination's own extension, so one argv covers
+    /// every tar flavour, and zip on a box without 7z; 7z is its own tool and its own shape.
+    /// corner: bsdtar reads -C positionally, so it has to precede the names it applies to. Putting it
+    /// after them archives nothing, prints "Cannot stat" per name, and still leaves an empty archive.
     pub fn compress_argv(&self, format: &str, dest: &Path, parent: &Path, names: &[String]) -> Option<Vec<String>> {
         if !self.offers(format) {
             return None;

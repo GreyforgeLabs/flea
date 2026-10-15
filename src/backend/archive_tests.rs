@@ -229,8 +229,8 @@ fn a_zip_is_probed_and_unlocked_by_7z_while_its_plain_extract_stays_with_bsdtar(
     assert!(tar_only.technical_list_argv(zip).is_none() && !reads_password(&tar_only, zip), "no 7z, no password route");
 }
 
-// A user format follows the built-in ones in the submenu, builds its own argv and names its program
-// for the jail; one claiming a built-in id never reaches the table, whatever the parser let through.
+/// A user format follows the built-in ones in the submenu, builds its own argv and names its program
+/// for the jail; one claiming a built-in id never reaches the table, whatever the parser let through.
 #[test]
 fn a_user_format_joins_the_table_after_the_built_in_ones() {
     let line = "zjx /opt/zjx {out} --base {dir} -- {names}\nzip /opt/fake {out} {names}";

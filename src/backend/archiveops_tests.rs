@@ -328,8 +328,8 @@ fn a_password_extract_of_a_tar_is_refused_with_one_sentence() {
     assert_eq!(none, 0, "and staged nothing");
 }
 
-// A user format's program lives outside /usr, so the jail binds that one file and nothing beside it:
-// the tool runs, receives every selected name as its own argument, and cannot see its own directory.
+/// A user format's program lives outside /usr, so the jail binds that one file and nothing beside it:
+/// the tool runs, receives every selected name as its own argument, and cannot see its own directory.
 #[test]
 fn a_user_format_runs_its_own_program_in_the_jail_and_sees_nothing_else_of_its_directory() {
     if crate::backend::sandboxprobe::skipped() { return; }
