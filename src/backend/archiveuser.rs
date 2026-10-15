@@ -87,7 +87,7 @@ pub fn parse(text: &str, reserved: &[&str], resolve: impl Fn(&Path) -> Option<Pa
             Some(format!("only the first {} formats are read", MAX_FORMATS))
         } else if !program.starts_with('/') {
             Some(format!("the program for \"{}\" must be an absolute path", id))
-        } else if args.iter().filter(|a| a.contains("{out}")).count() != 1 {
+        } else if args.iter().map(|a| a.matches("{out}").count()).sum::<usize>() != 1 {
             Some(format!("\"{}\" must name {{out}}, the archive to write, exactly once", id))
         } else if args.iter().filter(|a| *a == "{names}" || *a == "{paths}").count() != 1 {
             Some(format!("\"{}\" must take the selection as one whole {{names}} or {{paths}} argument", id))
@@ -148,6 +148,14 @@ mod tests {
         let (formats, _) = parse("lz /usr/bin/lzt -o{out} {paths}", &[], found);
         let argv = formats[0].argv(Path::new("/w/x.lz"), Path::new("/w"), &["a".to_string(), "b".to_string()]);
         assert_eq!(argv, ["/usr/bin/lzt", "-o/w/x.lz", "/w/a", "/w/b"]);
+    }
+
+    /// Reject repeated output placeholders even when they share one argument.
+    #[test]
+    fn repeated_out_in_one_argument_is_refused() {
+        let (formats, refused) = parse("lz /usr/bin/lzt -o{out}{out} {paths}", &[], found);
+        assert!(formats.is_empty(), "a repeated output must not load a format");
+        assert_eq!(refused, ["line 1: \"lz\" must name {out}, the archive to write, exactly once"]);
     }
 
     /// Every refusal names its line, and a refused line never stops the lines after it.
